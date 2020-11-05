@@ -8,4 +8,9 @@ class CodeBreaker:
         self.max_turns = max_turns
 
     def generate_guess(self, history):
-        return tuple(random.randint(1, self.num_colours) for i in range(self.code_length))
+        keep_guessing = True
+        while keep_guessing:
+            guess = tuple(random.randint(1, self.num_colours) for i in range(self.code_length))
+            if not any(turn['guess'] == guess for turn in history):
+                keep_guessing = False
+        return guess

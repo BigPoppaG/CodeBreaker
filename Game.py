@@ -7,7 +7,7 @@ class Board:
 
     """
 
-    def __init__(self, code_length, num_colours, max_turns, code=None):
+    def __init__(self, code_length, num_colours, max_turns, code=None, code_breaker=None):
         self.num_colours = num_colours
         self.code_length = code_length
         self.max_turns = max_turns
@@ -15,12 +15,12 @@ class Board:
             self.code = self.create_new_code()
         else:
             self.code = code
-        self.code_breaker = CodeBreaker(code_length, num_colours, max_turns)
+        self.code_breaker = code_breaker
 
     def play(self, player='Human'):
         correct = False
         history = []
-        while len(history) < self.max_turns:
+        while not correct and len(history) < self.max_turns:
             guess = self.get_next_guess(player, history)
             response = self.response(guess)
             history.append({'guess': guess, 'response': response})
@@ -34,12 +34,16 @@ class Board:
         if player == 'Human':
             legit_input = False
             while not legit_input:
-                raw_guess = input("Guess the code. You have " + str(self.max_turns - len(history)) + " turns remaining."
+                raw_guess = input("\nGuess the code. You have " + str(self.max_turns - len(history)) +
+                                  " turns remaining."
                                     "\nSelect " + str(self.code_length) + " integers between 1 and "
                                         + str(self.num_colours) + " separated with commas."
                                     "\nOr enter 0 to let the computer take a turn.\n")
                 if raw_guess == "0":
-                    guess = self.code_breaker.generate_guess(history)
+                    if self.code_breaker is None:
+                        guess = self.generate_guess(history)
+                    else:
+                        guess = self.code_breaker.generate_guess(history)
                     print('Using computer guess: ' + str(guess))
                     legit_input = True
                 else:
@@ -47,7 +51,10 @@ class Board:
                     if legit_input:
                         guess = self.guess_to_tuple(raw_guess)
         else:
-            guess = self.code_breaker.generate_guess(history)
+            if self.code_breaker is None:
+                guess = self.generate_guess(history)
+            else:
+                guess = self.code_breaker.generate_guess(history)
         return guess
 
     def response(self, guess):
@@ -88,9 +95,19 @@ class Board:
 
         return True
 
+    def generate_guess(self, history):
+        keep_guessing = True
+        while keep_guessing:
+            guess = tuple(random.randint(1, self.num_colours) for i in range(self.code_length))
+            if not any(turn['guess'] == guess for turn in history):
+                keep_guessing = False
+        return guess
+
 
 if __name__ == '__main__':
-    board = Board(4, 5, 10)
+    board_params = (4, 5, 10)
+    code_breaker = CodeBreaker(*board_params)
+    board = Board(*board_params, code=(5,4,2,2), code_breaker=code_breaker)
     code, game, win = board.play()
     if win:
         print('\nYou win in ' + str(len(game)) + " moves.")
